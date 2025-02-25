@@ -1,5 +1,4 @@
-﻿#include "firLab.h"
-#include <iostream>
+﻿#include <iostream>
 #include <string>
 #include <stdexcept>
 #include <cmath>
@@ -89,6 +88,12 @@ public:
 	int crossProduct(Vector2d& other) const
 	{
 		return x * other.y - other.x * y;
+	}
+
+	int mixedProduct(Vector2d& firVec, Vector2d& secVec, Vector2d& thirVec) const
+	{
+		//voprosiki
+		return 0;
 	}
 
 	Vector2d operator+(const Vector2d& other) const
