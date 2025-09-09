@@ -1,9 +1,4 @@
 
-# Project Title
-
-A brief description of what this project does and who it's for
-
-
 ## Задача
 Лабораторная работа 2 (красивая консоль) 
 
