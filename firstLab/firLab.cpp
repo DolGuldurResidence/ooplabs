@@ -1,4 +1,4 @@
-﻿#include <iostream>
+#include <iostream>
 #include <string>
 #include <stdexcept>
 #include <cmath>
@@ -17,20 +17,33 @@ private:
 public:
 	Point2d() : x(0), y(0) {}
 
-	Point2d(int x, int y, int screenWidth, int screenHeight)
+	Point2d(int x, int y)
 	{
-		if (x < 0 || y < 0 || x >= screenWidth || y >= screenHeight)
-		{
-			throw invalid_argument("Координаты должны быть внутри окна (начало координат левый нижний угол)");
-		}
+        setX(x);
+        setY(y);
 
-		this->x = x;
-		this->y = y;
 	}
 
 	int getX() const { return x; }
 
 	int getY() const { return y; }
+
+    void setX(int x) {
+        	if (x < 0 || x >= screenWidth )
+		{
+			throw invalid_argument("Координаты должны быть внутри окна (начало координат левый нижний угол)");
+		}
+
+		this->x = x;
+    }
+
+    void setY(int y) {
+        	if (y < 0 || y >= screenHeight)
+		{
+			throw invalid_argument("Координаты должны быть внутри окна (начало координат левый нижний угол)");
+		}
+		this->y = y;
+    }
 
 	string pointToString()const
 	{
@@ -42,8 +55,6 @@ public:
 class Vector2d
 {
 private:
-	Point2d head;
-	Point2d end;
 	int x;
 	int y;
 
@@ -122,7 +133,7 @@ int main()
 	setlocale(LC_ALL, "Russian");
 
 	try{
-		Point2d point(300, 200, screenWidth, screenHeight);
+		Point2d point(300, 200);
 		cout << point.pointToString() << endl;
 		Vector2d coordsVector(50, 50);
 		cout << coordsVector.vectorToString() << endl;
@@ -131,8 +142,8 @@ int main()
 		cerr << e.what() << endl;
 	}
 
-	Point2d headPoint(200, 300, screenWidth, screenHeight);
-	Point2d endPoint(15, 50, screenWidth, screenHeight);
+	Point2d headPoint(200, 300);
+	Point2d endPoint(15, 50);
 
 	Vector2d pointVector(headPoint, endPoint);
 	Vector2d secCoordsVector(8, 10);
@@ -146,7 +157,8 @@ int main()
 	secCoordsVector.setCoordY(30);
 
 	cout << "Координата x вектора по двум точкам: " << pointVector.getCoordX() << endl;
-	cout << "Координата y вектора по координатам: " << secCoordsVector.getCoordY() << endl;
+	cout << "Координата y вектора по координатам: " << secCoordsVector.getCoordY
+    () << endl;
 	
 	cout << "Скалярное произведение: " << pointVector.dotProduct(secCoordsVector) << endl;
 	cout << "Векторное произведение: " << secCoordsVector.crossProduct(pointVector) << endl;
