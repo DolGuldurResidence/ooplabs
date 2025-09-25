@@ -6,237 +6,258 @@
 #include <unordered_map>
 #include <algorithm>
 #include <cctype>
+#include <limits>
+
+using namespace std;
 
 enum class Color {
-    BLACK = 30,
-    RED = 31,
-    GREEN = 32,
-    YELLOW = 33,
-    BLUE = 34,
-    MAGENTA = 35,
-    CYAN = 36,
-    WHITE = 37,
-    RESET = 0
+	BLACK = 30,
+	RED = 31,
+	GREEN = 32,
+	YELLOW = 33,
+	BLUE = 34,
+	MAGENTA = 35,
+	CYAN = 36,
+	WHITE = 37,
+	RESET = 0
 };
 
-// https://dvmn.org/encyclopedia/python_strings/ansi-codes/
+Color stringToColor(string colorStr) {
+	for (char& ch : colorStr) {
+		ch = static_cast<char>(toupper(static_cast<unsigned char>(ch))); //safety type conversion |f.e. int 1 -> ch "1"
+	}
+	static const unordered_map<string, Color> colorMap = { //
+		{"BLACK", Color::BLACK},
+		{"RED", Color::RED},
+		{"GREEN", Color::GREEN},
+		{"YELLOW", Color::YELLOW},
+		{"BLUE", Color::BLUE},
+		{"MAGENTA", Color::MAGENTA},
+		{"CYAN", Color::CYAN},
+		{"WHITE", Color::WHITE}
+	};
+	auto it = colorMap.find(colorStr); 
+	return it == colorMap.end() ? Color::WHITE : it->second; //if iter of map -> to out of range: def color white, else iter -> value   
+}
+
+//https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 class ANSICodes {
 public:
-    static std::string clearScreen() {
+	static string clearScreen() { 
         return "\033[2J\033[H";
     }
-    
-    static std::string setColor(Color color) {
-        return "\033[" + std::to_string(static_cast<int>(color)) + "m";
+	static string setColor(Color color) {
+        return "\033[" + to_string(static_cast<int>(color)) + "m"; 
     }
-    
-    static std::string resetColor() {
+	static string resetColor() {
         return "\033[0m";
     }
-    
-    static std::string moveCursor(int row, int col) {
-        return "\033[" + std::to_string(row) + ";" + std::to_string(col) + "H";
+	static string moveCursor(int row, int col) {
+        return "\033[" + to_string(row) + ";" + to_string(col) + "H";
     }
 };
 
-// Класс для загрузки и хранения шаблонов символов
+//load templates symbols from text{fontId}.txt
 class FontLoader {
 private:
-    static std::unordered_map<std::string, std::map<char, 
-    std::vector<std::string>>> templates;
-    static std::unordered_map<std::string, bool> loaded;
+	static unordered_map<string, map<char, vector<string>>> templatesByFont; //un_map(str-map(ch-list(str)))
+	static unordered_map<string, bool> loaded;
 
 public:
-    static void loadFont(const std::string& fontId) {
-        if (loaded[fontId]) {
-            return;
-        }
-        
-        std::string filename = "text" + fontId + ".txt"; 
-        std::ifstream file(filename);
-        
-        if (!file.is_open()) {
-            std::cerr << "loading file error" << fontId << std::endl;
-            return;
-        }
-        
-        std::string line;
-        char currentChar = 0;
-        std::vector<std::string> currentTemplate;
-        
-        while (std::getline(file, line)) {
-            if (line.empty()) {
-                if (!currentTemplate.empty()) {
-                    templates[fontId][currentChar] = currentTemplate;
-                    currentTemplate.clear();
-                }
-                continue;
-            }
-            
-            if (line.length() == 1 && currentTemplate.empty()) {
-                currentChar = std::toupper(line[0]);
-            } else {
-                currentTemplate.push_back(line);
-            }
-        }
-        
-        if (!currentTemplate.empty()) {
-            templates[fontId][currentChar] = currentTemplate;
-        }
-        
-        loaded[fontId] = true;
-        file.close();
-    }
-    
-    static const std::map<char, std::vector<std::string>>& getFont(const std::string& fontId) {
-        return templates[fontId];
-    }
+	static void loadFont(const string& fontId) { //static method can be used without creating object:) 
+		if (loaded.count(fontId)) { // if loaded unempty leaving method 
+			return;
+		}
+
+		string filename = "text" + fontId + ".txt";
+		ifstream file(filename);
+		if (!file.is_open()) {
+			cerr << "Ошибка загрузки файла шрифта: " << filename << endl;
+			templatesByFont[fontId] = {}; // empty map for this ID 
+			loaded[fontId] = true; // mark as done
+			return;
+		}
+
+		string line; 
+		char currentChar = 0;
+		vector<string> currentTemplate;
+
+		while (getline(file, line)) {
+			//delete\r 
+			if (!line.empty() && line.back() == '\r') {
+				line.pop_back();
+			}
+
+			if (line.empty()) {  // making massive, if line empty
+				if (!currentTemplate.empty() && currentChar != 0) { //if cT not empty and cC is valid 
+					templatesByFont[fontId][currentChar] = currentTemplate; //fill tBF 
+					currentTemplate.clear();
+				}
+				continue;
+			}
+
+			if (currentTemplate.empty() && line.size() == 1) { //if "Ch" in line  
+				currentChar = static_cast<char>(toupper(static_cast<unsigned char>(line[0]))); //set ch for map as key
+			} else {
+				currentTemplate.push_back(line);
+			}
+		}
+
+		if (!currentTemplate.empty() && currentChar != 0) {
+			templatesByFont[fontId][currentChar] = currentTemplate; //packing done template to map
+		}
+
+		loaded[fontId] = true;
+		file.close();
+	}
+
+	static const map<char, vector<string>>& getFont(const string& fontId) {   //return tBF by font id   
+		return templatesByFont[fontId];
+	}
 };
 
-// Инициализация статических членов
-std::unordered_map<std::string, std::map<char, std::vector<std::string>>> 
-FontLoader::templates;
-std::unordered_map<std::string, bool> FontLoader::loaded;
+unordered_map<string, map<char, vector<string>>> FontLoader::templatesByFont; // allocate memory for ts vars out of class 119-120
+unordered_map<string, bool> FontLoader::loaded;
 
-// Основной класс Printer
 class Printer {
 private:
-    Color color;
-    std::pair<int, int> position;
-    std::string fontId;
-    char symbol;
+	Color color;
+	pair<int, int> position; // {row, col}, 1-based
+	string fontId;
+	char symbol;
 
 public:
-    // Статический метод для вывода текста
-    static void printStatic(const std::string& text, Color color, 
-                          const std::pair<int, int>& position, 
-                          char symbol = '*', 
-                          const std::string& fontId = "1") {
-        FontLoader::loadFont(fontId);
-        const auto& font = FontLoader::getFont(fontId);
-        
-        if (font.empty()) {
-            std::cerr << "Шрифт не загружен или пуст" << std::endl;
-            return;
+	// static output
+	static void printStatic(const string& text,
+							Color color,
+							const pair<int, int>& position,
+							char symbol = '*',
+							const string& fontId = "1") {
+		FontLoader::loadFont(fontId);
+		const auto& font = FontLoader::getFont(fontId);
+		if (font.empty()) {
+			cerr << "Шрифт не загружен или пуст: " << fontId << endl;
+			return;
+		}
+
+        // normalize height by max highest tamplate
+        int height = 0;
+        for (const auto& kv : font) {
+            height = max(height, static_cast<int>(kv.second.size())); //choose max between string in vec of templ and pervious height
         }
-        
-        // Определяем высоту символов
-        int height = font.begin()->second.size();
-        std::vector<std::string> outputLines(height, "");
-        
-        // Формируем выходные строки
-        for (char c : text) {
-            c = std::toupper(c);
-            if (font.find(c) == font.end()) {
-                // Если символ не найден в шрифте, пропускаем его
-                continue;
+        vector<string> outputLines(height, "");
+
+        // Собираем строки вывода с нормализацией ширины/высоты
+        auto computeGlyphWidth = [](const vector<string>& tmpl) -> int {
+            int w = 0;
+            for (const string& row : tmpl) {
+                w = max(w, static_cast<int>(row.size()));
             }
-            
-            const auto& charTemplate = font.at(c);
+            return w;
+        };
+
+        // Ширина по умолчанию для неизвестных символов — по первому шаблону
+        int defaultWidth = 0;
+        if (!font.empty()) {
+            defaultWidth = computeGlyphWidth(font.begin()->second);
+        }
+
+        for (char raw : text) {
+			char c = static_cast<char>(toupper(static_cast<unsigned char>(raw)));
+			auto it = font.find(c);
+			if (it == font.end()) {
+                int width = defaultWidth;
+                for (int i = 0; i < height; i++) {
+                    outputLines[i] += string(max(0, width), ' ') + " ";
+                }
+				continue;
+			}
+            const auto& tmpl = it->second;
+            const int glyphHeight = static_cast<int>(tmpl.size());
+            const int glyphWidth = computeGlyphWidth(tmpl);
             for (int i = 0; i < height; i++) {
-                std::string line = charTemplate[i];
-                // Заменяем символы в шаблоне на указанный символ
+                string line = (i < glyphHeight) ? tmpl[i] : string(glyphWidth, ' ');
+                if (static_cast<int>(line.size()) < glyphWidth) {
+                    line.append(glyphWidth - static_cast<int>(line.size()), ' ');
+                }
                 for (char& ch : line) {
-                    if (ch != ' ') {
-                        ch = symbol;
-                    }
+                    if (ch != ' ') ch = symbol;
                 }
                 outputLines[i] += line + " ";
             }
-        }
-        
-        // Очищаем экран и перемещаем курсор
-        std::cout << ANSICodes::clearScreen();
-        
-        // Перемещаем курсор на нужную позицию
-        for (int i = 0; i < position.first - 1; i++) {
-            std::cout << std::endl;
-        }
-        
-        // Выводим текст
-        for (const auto& line : outputLines) {
-            std::cout << std::string(position.second - 1, ' ');
-            std::cout << ANSICodes::setColor(color) << line << ANSICodes::resetColor() << std::endl;
-        }
-    }
-    
-    // Конструктор
-    Printer(Color color, const std::pair<int, int>& position, 
-           char symbol = '*', const std::string& fontId = "1")
-        : color(color), position(position), fontId(fontId), symbol(symbol) {
-        FontLoader::loadFont(fontId);
-    }
-    
-    // Метод для вывода текста
-    void print(const std::string& text) const {
-        printStatic(text, color, position, symbol, fontId);
-    }
-    
-    // Деструктор (для восстановления состояния консоли)
-    ~Printer() {
-        std::cout << ANSICodes::resetColor() << std::endl;
-    }
+		}
+
+		// Очистка экрана и вертикальное смещение
+		cout << ANSICodes::clearScreen();
+		for (int i = 0; i < max(0, position.first - 1); i++) {
+			cout << '\n';
+		}
+
+		// Вывод с цветом и горизонтальным смещением
+		for (const auto& line : outputLines) {
+			cout << string(max(0, position.second - 1), ' ');
+			cout << ANSICodes::setColor(color) << line << ANSICodes::resetColor() << '\n';
+		}
+	}
+
+	// Экземпляр с фиксированным стилем
+	Printer(Color color, const pair<int, int>& position, char symbol = '*', const string& fontId = "1")
+		: color(color), position(position), fontId(fontId), symbol(symbol) {
+		FontLoader::loadFont(fontId);
+	}
+
+	void print(const string& text) const {
+		printStatic(text, color, position, symbol, fontId);
+	}
+
+	~Printer() {
+		// Восстановление состояния консоли
+		cout << ANSICodes::resetColor();
+	}
 };
 
-// Функция для преобразования строки в цвет
-Color stringToColor(const std::string& colorStr) {
-    static const std::unordered_map<std::string, Color> colorMap = {
-        {"BLACK", Color::BLACK},
-        {"RED", Color::RED},
-        {"GREEN", Color::GREEN},
-        {"YELLOW", Color::YELLOW},
-        {"BLUE", Color::BLUE},
-        {"MAGENTA", Color::MAGENTA},
-        {"CYAN", Color::CYAN},
-        {"WHITE", Color::WHITE}
-    };
-    
-    auto it = colorMap.find(colorStr);
-    if (it != colorMap.end()) {
-        return it->second;
-    }
-    return Color::WHITE; // По умолчанию белый
-}
+
 
 int main() {
-    // Демонстрация статического метода
-    std::cout << "=== Демонстрация статического метода ===" << std::endl;
-    Printer::printStatic("HELLO", Color::GREEN, {5, 5}, '#', "1");
+	// Демонстрация статического метода
+	cout << "=== Демонстрация статического метода ===\n";
+	Printer::printStatic("HELLO", Color::GREEN, {5, 5}, '#', "1");
 
-    // Ждем пользовательский ввод
-    std::cout << "Нажмите Enter для продолжения...";
-    std::cin.ignore();
-    
-    // Демонстрация работы через экземпляр класса
-    std::cout << "=== Демонстрация работы через экземпляр класса ===" << std::endl;
-    
-    std::string userInput;
-    std::cout << "Введите слово (латинскими буквами): ";
-    std::getline(std::cin, userInput);
-    
-    std::cout << "Выберите цвет (BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE): ";
-    std::string colorInput;
-    std::getline(std::cin, colorInput);
-    Color color = stringToColor(colorInput);
-    
-    std::cout << "Выберите символ для отображения: ";
-    char symbol;
-    std::cin >> symbol;
-    
-    std::cout << "Выберите шрифт (1 - обычный, 2 - большой): ";
-    std::string fontChoice;
-    std::cin >> fontChoice;
-    
-    // Создаем экземпляр Printer и используем его
-    {
-        Printer printer(color, {10, 10}, symbol, fontChoice);
-        printer.print(userInput);
-        
-        // В этой области видимости printer активен
-        // При выходе из области видимости будет вызван деструктор
-    }
-    
-    std::cout << "Состояние консоли восстановлено." << std::endl;
-    
-    return 0;
+	cout << "Нажмите Enter для продолжения...";
+	cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+	// Демонстрация через экземпляр
+	cout << "=== Демонстрация экземпляра ===\n";
+	cout << "Введите слово (латиницей): ";
+	string userInput;
+	getline(cin, userInput);
+
+	cout << "Выберите цвет (BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE): ";
+	string colorInput;
+	getline(cin, colorInput);
+	Color color = stringToColor(colorInput);
+
+	cout << "Выберите символ для отображения: ";
+	char symbol = '*';
+	{
+		string s;
+		getline(cin, s);
+		if (!s.empty()) symbol = s[0];
+	}
+
+	cout << "Выберите шрифт (1 — обычный, 2 — большой): ";
+	string fontChoice;
+	{
+		string s;
+		getline(cin, s);
+		fontChoice = (s == "2") ? "2" : "1";
+	}
+
+	{
+		Printer printer(color, {10, 10}, symbol, fontChoice);
+		printer.print(userInput);
+	}
+
+	cout << "\nСостояние консоли восстановлено.\n";
+	return 0;
 }
