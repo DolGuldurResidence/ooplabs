@@ -219,25 +219,27 @@ public:
 
 
 int main() {
+
+
 	// Демонстрация статического метода
-	cout << "=== Демонстрация статического метода ===\n";
+	cout << " Static demonstration \n";
 	Printer::printStatic("HELLO", Color::GREEN, {5, 5}, '#', "1");
 
-	cout << "Нажмите Enter для продолжения...";
+	cout << "press ENTER to continue...";
 	cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
 	// Демонстрация через экземпляр
-	cout << "=== Демонстрация экземпляра ===\n";
-	cout << "Введите слово (латиницей): ";
+	cout << "object demonstration\n";
+	cout << "input the word(latin): ";
 	string userInput;
 	getline(cin, userInput);
 
-	cout << "Выберите цвет (BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE): ";
+	cout << "choose color(BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE): ";
 	string colorInput;
 	getline(cin, colorInput);
 	Color color = stringToColor(colorInput);
 
-	cout << "Выберите символ для отображения: ";
+	cout << "choose symbol: ";
 	char symbol = '*';
 	{
 		string s;
@@ -245,7 +247,7 @@ int main() {
 		if (!s.empty()) symbol = s[0];
 	}
 
-	cout << "Выберите шрифт (1 — обычный, 2 — большой): ";
+	cout << "choose font (1 -  X~N(mu, q^2), 2 - big): ";
 	string fontChoice;
 	{
 		string s;
@@ -258,6 +260,6 @@ int main() {
 		printer.print(userInput);
 	}
 
-	cout << "\nСостояние консоли восстановлено.\n";
+	cout << "\nconsole state back to normal.\n";
 	return 0;
 }
