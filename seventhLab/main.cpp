@@ -1,4 +1,4 @@
-#include "dependency_injection.h"
+#include "dependency_injection.hpp"
 #include <iostream>
 #include <memory>
 
