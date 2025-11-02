@@ -2,7 +2,6 @@
 #include <iostream>
 #include <fstream>
 
-
 //интерфейс - определяет нужно ли нам логировать это сообщение или нет 
 class ILogFilter {
 public: 
@@ -47,14 +46,12 @@ public:
     }
 };
 
-
 class Socket {
 public:
     void send(const std::string& str) {
         std::cout << str << std::endl;
     }
 };
-
 
 class SocketHandler : public ILogHandler {
 public:
@@ -63,7 +60,6 @@ public:
         socket.send("SocketHandler: " + text);
     }
 };
-
 
 class FileHandler : public ILogHandler {
     std::string path;
@@ -95,7 +91,6 @@ public:
     }
 };
 
-
 //принимает списки фильтров и списки обработчиков
 class Logger {
     std::vector<ILogFilter*> filters;  
@@ -123,8 +118,6 @@ public:
 int main() {
     SimpleLogFilter error_filter("error");
     ReLogFilter email_filter(std::regex("[0-9]+"));
-
-
 
     ConsoleHandler console_handler;
     FileHandler file_handler("log.txt");

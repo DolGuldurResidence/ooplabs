@@ -1,0 +1,12 @@
+# Исполняемые файлы
+*.exe
+*.out
+*.app
+
+# Файлы логов
+*.log
+*.txt
+
+#vscode config
+*.vscode
+
