@@ -60,6 +60,7 @@ public:
 //load templates symbols from text{fontId}.txt
 class FontLoader {
 private:
+	//static означает, что эти переменные общие для всех объектов класса.
 	static unordered_map<string, map<char, vector<string>>> templatesByFont; //un_map(str-map(ch-list(str)))
 	static unordered_map<string, bool> loaded;
 
@@ -83,7 +84,7 @@ public:
 		vector<string> currentTemplate;
 
 		while (getline(file, line)) {
-			//delete\r 
+			//delete  \r 
 			if (!line.empty() && line.back() == '\r') {
 				line.pop_back();
 			}
