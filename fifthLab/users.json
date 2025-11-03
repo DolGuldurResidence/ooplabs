@@ -1,0 +1,18 @@
+[
+{
+"address": "",
+"email": "",
+"id": 1,
+"login": "cool_user123",
+"name": "cool_user",
+"password (hashed)": 5092
+},
+{
+"address": "",
+"email": "",
+"id": 2,
+"login": "cool_login",
+"name": "another_cool_user",
+"password (hashed)": 2462
+}
+]
