@@ -4,7 +4,6 @@
 #include <iostream>
 #include <sstream>
 
-//forward decloration, cause used in IPCL.
 class INotifyDataChanged;
 
 //интерфейс для слушателя. 
