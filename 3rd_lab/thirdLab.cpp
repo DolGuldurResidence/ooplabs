@@ -64,7 +64,7 @@ public:
 class FileHandler : public ILogHandler {
     std::string path;
 public:
-    FileHandler(std::string path): path(path) {}
+    FileHandler(const std::string& path): path(path) {}
 
     void handle(const std::string& text) const override {
         std::ofstream fout;

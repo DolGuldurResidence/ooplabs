@@ -5,7 +5,6 @@
 #include <stdexcept>
 #include <any>
 
-
 enum class LifeStyle {
     per_request,
     scoped,
@@ -23,7 +22,7 @@ class Injector {
 
 private:
     struct Registration {
-        std::function<std::any()> creator;
+        std::function<std::any()> creator; //хранит "инструкцию по созданию объекта" чтобы выполнить её позже
         LifeStyle lifeStyle;
         IInterface* instance;
     };
@@ -35,6 +34,8 @@ private:
         in_scope = true;
     }
 
+
+    //чистим регистрации, устанавливаем указатель nullptr на место где был scoped object 
     void end_scope() {
         in_scope = false;
 
@@ -45,7 +46,8 @@ private:
             }
         }
     }
-
+    
+    //Эта функция - "универсальный конструктор" для любых классов, наследующих от IInterface
     template<typename T, typename... Args>
     IInterface* create_instance(Args&&... args) {
         return dynamic_cast<IInterface*>(new T(std::forward<Args>(args)...));
@@ -58,7 +60,8 @@ public:
             delete v.instance;
         }
     }
-    // Регистрация зависимости
+
+    // Регистрация зависимости связывает интерфейс с конкретной реализацией и фабрикой для ее содания.
     template<typename Interface, typename Implementation, typename... Args>
     void register_type(LifeStyle lifeStyle = LifeStyle::per_request, Args&&... args) {
         auto creator = [this, args...]() {
@@ -71,15 +74,13 @@ public:
         };
     }
 
-    // // Регистрация фабричного метода
-    // template<typename Interface, typename Factory>
-    // void register_factory(Factory&& factory) {
-    //     registrations[typeid(Interface).name()] = Registration{
-    //         factory, //[factory]() { return factory(); },
-    //         LifeStyle::per_request // Фабричные методы всегда создают новый экземпляр
-    //     };
-    // }
-
+    template<typename Interface, typename Factory>
+    void register_factory(Factory& factory) {
+        registrations[typeid(Interface).name()] = Registration{
+            factory, 
+            LifeStyle::per_request
+        };
+    }
 
     template<typename Interface>
     Interface* get_instance() {
@@ -187,7 +188,9 @@ public:
     }
 };
 
-
+IInterface* get_pretty_class1_debug(){
+    return dynamic_cast<IInterface*>(new Class1_debug("pretty"));
+}
 
 class Class3_debug: public Interface3 {
 public:
@@ -208,20 +211,19 @@ public:
 int main() {
     Injector injector;
 
-    // configuration number one
-
-    injector.register_type<Interface1, Class1_release>(LifeStyle::per_request);
+    // configuration number one release versions
+    injector.register_factory<Interface1, IInterface*()>(get_pretty_class1_debug);
     injector.register_type<Interface2, Class2_release>(LifeStyle::scoped);
     injector.register_type<Interface3, Class3_release>(LifeStyle::singleton);
 
 
-
+    //perRequest demo
     auto inst = injector.get_instance<Interface1>();
     inst->hello1();
 
+    //scoped demo
     Interface2* inst_scoped1;
     Interface2* inst_scoped2;
-
 
     {
         Injector::Scope scope(injector);
@@ -234,7 +236,8 @@ int main() {
     }
 
     std::cout << "is instances from different scope are the same?: " << (inst_scoped1 == inst_scoped2 ? "Yes" : "No") << "\n";
-
+    
+    //singleton demo
     Interface3* inst_singleton1;
     Interface3* inst_singleton2;
 
@@ -247,7 +250,6 @@ int main() {
 
 
     // configuration number two
-
     injector.register_type<Interface1, Class1_debug>(LifeStyle::per_request, "hello world");
     injector.register_type<Interface2, Class2_debug>(LifeStyle::scoped, 101, 37);
     injector.register_type<Interface3, Class3_debug>(LifeStyle::singleton);

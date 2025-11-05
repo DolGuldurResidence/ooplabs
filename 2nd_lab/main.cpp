@@ -7,6 +7,13 @@
 #include <algorithm>
 #include <cctype>
 #include <limits>
+#include <clocale>
+#include <cstdlib>
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+
 
 using namespace std;
 
@@ -125,18 +132,21 @@ private:
 	Color color;
 	pair<int, int> position; // {row, col}, 1-based
 	string fontId;
-	char symbol;
+	string symbol;
 
 public:
 	// static output
 	static void printStatic(const string& text,
 							Color color,
 							const pair<int, int>& position,
-							char symbol = '*',
+							const string& symbol = "*",
 							const string& fontId = "1") {
 		FontLoader::loadFont(fontId);
 		const auto& font = FontLoader::getFont(fontId);
 		if (font.empty()) {
+			#ifdef _WIN32
+				SetConsoleOutputCP(65001);
+			#endif
 			cerr << "Шрифт не загружен или пуст: " << fontId << endl;
 			return;
 		}
@@ -181,9 +191,18 @@ public:
                 if (static_cast<int>(line.size()) < glyphWidth) {
                     line.append(glyphWidth - static_cast<int>(line.size()), ' ');
                 }
-                for (char& ch : line) {
-                    if (ch != ' ') ch = symbol;
+                // Replace non-space characters with UTF-8 symbol
+                // Ensure symbol is not empty (fallback to "*")
+                string actualSymbol = symbol.empty() ? "*" : symbol;
+                string processedLine = "";
+                for (size_t j = 0; j < line.size(); j++) {
+                    if (line[j] != ' ') {
+                        processedLine += actualSymbol;
+                    } else {
+                        processedLine += ' ';
+                    }
                 }
+                line = processedLine;
                 outputLines[i] += line + " ";
             }
 		}
@@ -202,7 +221,7 @@ public:
 	}
 
 	// Экземпляр с фиксированным стилем
-	Printer(Color color, const pair<int, int>& position, char symbol = '*', const string& fontId = "1")
+	Printer(Color color, const pair<int, int>& position, const string& symbol = "*", const string& fontId = "1")
 		: color(color), position(position), fontId(fontId), symbol(symbol) {
 		FontLoader::loadFont(fontId);
 	}
@@ -220,14 +239,23 @@ public:
 
 
 int main() {
-
+	// Настройка локали для поддержки UTF-8
+	#ifdef _WIN32
+		// Для Windows: установка UTF-8 кодовой страницы
+		SetConsoleOutputCP(65001);  // UTF-8
+		SetConsoleCP(65001);        // UTF-8 для ввода
+		system("chcp 65001 > nul");
+		setlocale(LC_ALL, ".UTF8");
+	#else
+		setlocale(LC_ALL, "en_US.UTF-8");
+	#endif
 
 	// Демонстрация статического метода
 	cout << " Static demonstration \n";
-	Printer::printStatic("HELLO", Color::GREEN, {5, 5}, '#', "1");
+	Printer::printStatic("HELLO", Color::GREEN, {5, 5}, "#", "1");
 
 	cout << "press ENTER to continue...";
-	cin.ignore(numeric_limits<streamsize>::max(), '\n');
+	cin.ignore((numeric_limits<streamsize>::max)(), '\n');
 
 	// Демонстрация через экземпляр
 	cout << "object demonstration\n";
@@ -240,12 +268,18 @@ int main() {
 	getline(cin, colorInput);
 	Color color = stringToColor(colorInput);
 
-	cout << "choose symbol: ";
-	char symbol = '*';
+	cout << "choose symbol (can be UTF-8, e.g. *, #, █, ▓, ╬, ║, etc.): ";
+	string symbol = "*";
 	{
 		string s;
 		getline(cin, s);
-		if (!s.empty()) symbol = s[0];
+		if (!s.empty()) {
+			symbol = s;
+			// Debug: показываем размер символа в байтах
+			#ifdef _DEBUG
+			cout << "Symbol length: " << symbol.length() << " bytes\n";
+			#endif
+		}
 	}
 
 	cout << "choose font (1 -  X~N(mu, q^2), 2 - big): ";

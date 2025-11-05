@@ -2,8 +2,9 @@
 #include <vector>
 #include <algorithm>
 #include <iostream>
-#include <fstream>                                                                                
+#include <fstream>
 #include "json.hpp"
+
 
 using json = nlohmann::json;
 
@@ -77,6 +78,7 @@ private:
 
 };
 
+
 template <typename T>
 class IDataRepository {
 public:
@@ -93,6 +95,7 @@ class IUserRepository: virtual public IDataRepository<User> {
 public:
     virtual User* get_by_login(std::string login) = 0;
 };
+
 
 template <typename T>
 class DataRepository: virtual public IDataRepository<T> {
@@ -230,6 +233,7 @@ public:
     }
 };
 
+
 class IAuthService {
 public:
     virtual void sign_in(const User& user) = 0;
@@ -240,13 +244,16 @@ public:
 
 };
 
+
 class AuthService: public IAuthService {
 protected:
-    IUserRepository& repository;
+    UserRepository& repository;
     std::string auth_file_name;
     int user_id;
     bool is_auth = false;
+    bool need_register = false;
     
+
     void load_auth() {
         std::ifstream file;
         file.exceptions(std::ifstream::badbit);
@@ -254,34 +261,57 @@ protected:
         try {
             file.open(this->auth_file_name);
 
-            if (file.eof()) {
+            if (!file.is_open()) {
+                need_register = true;
+                is_auth = false;
+                save_auth();
+                return;
+            }
+
+            if (file.peek() == std::ifstream::traits_type::eof()) {
+                need_register = true;
+                is_auth = false;
+                save_auth();
                 return;
             }
 
             json j;
             file >> j;
-            if (j.contains("id") && j["id"] != "null") {
-                user_id = j["id"];
 
-                if (!repository.get_by_id(user_id)) {
-                    std::cout << "Stored user ID " << user_id << " not found in repository\n";
-                }
+            if (!j.contains("id") || j["id"] == "null") {
+                need_register = true;
+                is_auth = false;
+                save_auth();
+                return;
+            }
+
+            user_id = j["id"];
+
+            if (!repository.get_by_id(user_id)) {
+                std::cout << "Stored user ID " << user_id << " not found in repository\n";
+                need_register = true;
+                is_auth = false;
+                save_auth();
+                return;
             }
         }
 
         catch (const std::ifstream::failure& e) {
             std::cerr << "File error: " << e.what() << std::endl;
-            throw;
+            need_register = true;
+            is_auth = false;
         }
 
         catch (const json::exception& e) {
             std::cerr << "JSON error: " << e.what() << std::endl;
-            throw;
+            need_register = true;
+            is_auth = false;
         }
 
         catch (const std::exception& e) {
             std::cerr << "Common error: " << e.what() << std::endl;
-            throw;
+            need_register = true;
+            is_auth = false;
         }
     }
 
@@ -314,6 +344,10 @@ public:
         load_auth();
     }
 
+    bool need_registration() const {
+        return !is_auth && need_register;
+    }
+
     void sign_in(const User& user) override {
         user_id = user.id;
         is_auth = true;
@@ -337,9 +371,48 @@ public:
     }
 };
 
+
+
+
 int main() {
     UserRepository user_repo("users.json");
     AuthService auth(user_repo, "auth.json");
+
+
+    if (auth.need_registration()) {
+        std::cout << "Auth config not found or empty. Register a new user? (y/n): ";
+        char ans;
+        std::cin >> ans;
+        if (ans == 'y' || ans == 'Y') {
+            int newId = 1;
+            auto all = user_repo.get_all();
+            for (const auto& u : all) {
+                if (u.id >= newId) newId = u.id + 1;
+            }
+
+            std::string name, login, password, email, address;
+            std::cout << "Enter name: ";
+            std::cin >> name;
+            std::cout << "Enter login: ";
+            std::cin >> login;
+            std::cout << "Enter password: ";
+            std::cin >> password;
+            std::cout << "Enter email: ";
+            std::cin >> email;
+            std::cout << "Enter address: ";
+            std::cin >> address;
+
+            User new_user(newId, name, login, password);
+            new_user.email = email;
+            new_user.address = address;
+            user_repo.add(new_user);
+            auth.sign_in(new_user);
+            std::cout << "Registered and logged in: " << auth.current_user()->str() << "\n\n";
+        } else {
+            std::cout << "Registration skipped. Authorization is required for further actions.\n\n";
+        }
+    }
+
 
     User user1(1, "cool_user", "cool_user123", "cool_password");
     user_repo.add(user1);
@@ -351,7 +424,8 @@ int main() {
 
     std::cout << "Authorized: " << (auth.is_authorized() ? "Yes" : "No") << "\n\n\n";
 
-    User user2(2, "another_cool_user", "cool_login", "qwerty");
+
+    User user2(2, "someone", "someonovich", "qwerty");
     user_repo.add(user2);
 
     if (user_repo.get_by_login(user2.login)) {
@@ -361,6 +435,8 @@ int main() {
 
     auth.sign_out();
     std::cout << "After logout: " << (auth.is_authorized() ? "Yes" : "No") << "\n\n\n";
+
+
     
     if (user_repo.get_by_login(user1.login)) {
         auth.sign_in(user1);

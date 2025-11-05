@@ -81,14 +81,8 @@ public:
 	Vector2d() : Vector2d(0,0) {}
 	     
 	//constructor by points linked to setters
-	Vector2d(Point2d headPoint, Point2d endPoint)
-	{
-		x = headPoint.getX() - endPoint.getX();
-		setCoordX(x);
-
-		y = headPoint.getY() - endPoint.getY();
-		setCoordY(y);
-	}
+	Vector2d(Point2d headPoint, Point2d endPoint) :
+		Vector2d(headPoint.getX() - endPoint.getX(), headPoint.getY() - endPoint.getY()) {}
 
 	//main constructor linked to setters
 	Vector2d(int x, int y)
@@ -192,15 +186,15 @@ int main()
 	Vector2d pointVector(headPoint, endPoint);
 	Vector2d secCoordsVector(8, 10);
 	
-	cout << "Вектор по двум точкам: " << pointVector << endl;
-	cout << "Длинна вектора по двум точкам: " << pointVector.lenght() << endl;
-	cout << "Вектор по координатам: " << secCoordsVector << endl;
-	cout << "Длинна вектора по координатам: " << secCoordsVector.lenght() << endl;
+	cout << "Vec by 2 points: " << pointVector << endl;
+	cout << "len vec 2point: " << pointVector.lenght() << endl;
+	cout << "vec coord: " << secCoordsVector << endl;
+	cout << "len vec: " << secCoordsVector.lenght() << endl;
 	
 	pointVector.setCoordX(100); 
 	secCoordsVector.setCoordY(30);
 
-	cout << "Координата x вектора по двум точкам: " << pointVector.getCoordX() << endl;
+	cout << "coord x vec by " << pointVector.getCoordX() << endl;
 	cout << "Координата y вектора по координатам: " << secCoordsVector.getCoordY() << endl;
 	
 	cout << "Скалярное произведение: " << pointVector.dotProduct(secCoordsVector) << endl;
